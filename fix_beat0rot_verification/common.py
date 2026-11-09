@@ -4,9 +4,10 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-LIVE = Path('/workspace/sneak_n2/sneak_n2.py')
+REPO = HERE.parent
+LIVE = REPO / 'sneak_n2.py'
 EXPECTED_SHA = None  # filled after reading live file; scripts record actual
-sys.path.insert(0, '/workspace/sneak_n2')
+sys.path.insert(0, str(REPO))
 import sneak_n2 as N
 
 LIVE_SHA = hashlib.sha256(LIVE.read_bytes()).hexdigest()

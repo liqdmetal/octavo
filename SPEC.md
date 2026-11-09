@@ -1,6 +1,76 @@
+## Current live revision — packaging (2026-11-09)
+
+Packaging only: the 16-round function, S-boxes, schedule, mixes, bow, rehair and
+cross-staff layers are unchanged from the beat-0 pressure-rotation revision below.
+Still homemade. **Not for real secrets.** Use AES-GCM-SIV, age or libsodium.
+
+Triggered by the independent review in [issue #1](https://github.com/Kromatikus/octavo/issues/1)
+(@liqdmetal): no cipher break reported, but a fresh clone could not run the suite
+or the advertised quick start.
+
+### Seed path
+
+`SEED_PATH` is `sneak1024-seed.txt` next to this module (`os.path.dirname(abspath(__file__))`).
+`load_seed()` with no argument reads only that file; there is no other fallback path.
+The runtime absolute value of `SEED_PATH` is listed in `_ATTEST_SKIP` and is
+**not** hashed into `mix_description`, so two installs of the same source produce
+the same `key_signature`.
+
+### Key signature (cached, embedded)
+
+`mix_description()` is still the canonical JSON of parameters plus length-framed
+function sources and reachable module data. It is computed from source when
+`inspect.getsource` works.
+
+`EXPECTED_MIX_SHA256` is `sha256(mix_description())` stored in the module. It is
+also in `_ATTEST_SKIP`, so the constant is not part of what it names
+(chicken-and-egg). At import:
+
+1. If source is readable, compute the digest and compare it to `EXPECTED_MIX_SHA256`.
+   A mismatch raises `RuntimeError`.
+2. If source is not readable (a `.pyc`-only install), use the embedded digest.
+
+`key_signature(seed)` is `StaffSponge(b"G", seed, bytes.fromhex(digest)).take(16)`.
+The sponge nonce is the 32-byte digest, not the full JSON. That is a packaging
+change to the commitment encoding; the round function is untouched. Encrypt and
+decrypt therefore no longer re-parse source on every call.
+
+`MIX_CODE_ROOTS` includes `mix_description` so the description helpers and the
+data they name stay in the closure. In-process monkeypatches after import still
+change a fresh `mix_description()`, but they do **not** move the cached
+`key_signature`. A changed *file* (with `EXPECTED_MIX_SHA256` left as
+`TO_BE_FILLED` or updated) computes a new digest at import and so a new
+`key_signature`.
+
+### Blob format version
+
+Blobs are 196 bytes:
+
+```
+version (1 byte, FMT_VERSION = 1) || SN2 || pickup (16) || nonce (16) || ct (128) || tag (32)
+```
+
+Offsets: version `[0:4]` (the version byte plus `SN2`), pickup `[4:20]`, nonce
+`[20:36]`, ciphertext `[36:164]`, tag `[164:196]`.
+
+`decrypt` checks the first byte before the length and before the tag. A blob
+whose first byte is not `1` — including every older 195-byte `SN2...` blob —
+raises `UnsupportedVersion("unsupported version")`. The HMAC authenticates
+`clef || key_sig || version || SN2 || pickup || nonce || ct`. Sponge domain
+strings remain `b"SN2/"`.
+
+### Weak seeds
+
+`_seed_bytes` rejects a 128-byte seed with fewer than 32 distinct nonzero bytes
+(`ValueError: weak seed: need at least 32 distinct nonzero bytes`). Integer
+`1` and the all-zero key are rejected. The published demo seed has 100 distinct
+nonzero bytes and is accepted.
+
+---
+
 # Sneak staff-core N2: live specification
 
-## Current live revision — beat-0 pressure rotation fix (2026-11-09)
+## Previous revision — beat-0 pressure rotation fix (2026-11-09)
 
 This section supersedes everything below for the bow, including the beat-6 section that
 follows. Still N2 / SN2 (project name: Octavo), still homemade, **not for real secrets** (use
@@ -967,3 +1037,36 @@ Current sampled byte-dependence min-unions for rounds 1–6 are `[80,128,128,128
 - Backup before edits: `/tmp/sneak_n2_pre_triplet` (tree copy excluding `__pycache__`).
 
 Still **homemade, unreviewed, not for real secrets**. Use **AES-GCM-SIV, age, or libsodium** for those.
+
+## Fixed test vectors (for independent implementations)
+
+Use these to check another implementation. Each vector fixes the 16-byte pickup
+(`000102...0f`, normally `os.urandom`), so `encrypt` is deterministic. The seed is
+`sneak1024-seed.txt` as loaded by `load_seed()`. Every blob must decrypt to its
+message. A correct decryptor also rejects the three negative cases below.
+
+Seed and key signature (for the seed-loading check):
+
+| item | value |
+|---|---|
+| seed SHA-256 | `8d1f7c16876c149c2d445c2817a230ffaaec9d8a2fc9769e2f3aae155e3b8e24` |
+| key signature (16 bytes) | `a09a745ee41908c969c21a7d45577870` |
+| pickup used | `000102030405060708090a0b0c0d0e0f` |
+| blob length | 196 bytes (`MAX_MSG` = 127, `BLOB_LEN` = 196) |
+
+Positive vectors (message to blob):
+
+| name | msg length | nonce (SIV, 16 bytes) | blob (196 bytes, hex) |
+|---|---|---|---|
+| empty | 0 | `56e3184d97a5a8fb1e704cf1d6fb0819` | `01534e32000102030405060708090a0b0c0d0e0f56e3184d97a5a8fb1e704cf1d6fb0819c56b7b8ce93aa3f5c65eeaaef3b7df22a48197534fa56fa480faa71d8a32bb5b3bf25eaaeef99ce81acc8a096b6570de1eee02065d527ef1e8990101f060c7185fde23ab1ef27e19b4360aa31f69c066ad1c7b67e0f4e1e333462e0fdf3a37d9f3cdb348a2ab648cc26e7c8928f6902d322216990a5f9b9398fba4f77b7784e5ba75974e29338e9c3213956ec087e3e22c7e51616d1928c6b95013c042e730fa1ef27e19b4360aa31f69c066ad1c7b67e0f4e1e333462e0fdf3a37d9f3cdb348a2ab648cc26e7c8928f6902d322216990a5f9b9398fba4f77b7784e56155ce80f1888733b1f9ad4d9f8270ea855eeb441f3a30b3e5de49da444463d7` |
+| hello world | 11 | `8ead058c248507c42c799033fb03a546` | `01534e32000102030405060708090a0b0c0d0e0f8ead058c248507c42c799033fb03a54605b152b4f8e399bd46847dfc1f05074bd05c4ec7247357a9823cfb5435ace6e2aa5a87aed414f069e3a71fdb371c51af37d6762fa63cb5fae4fa67d6cc89cd20795e4c12048e842e942e8cb6686331962fb2c504758974994f773a142d2f58809e8704238551f1d83a0540df27d8382cfa8ef0d76830337bc4468c11a7d2e9fd8d04bb912a573eda5121207d9922056696cc3456e511d4f44ee637938a03c4df95e4c12048e842e942e8cb6686331962fb2c504758974994f773a142d2f58809e8704238551f1d83a0540df27d8382cfa8ef0d76830337bc4468c11a7d2e9fdcce477814a6c2bc9eae65a86d2b670df9e839a01bff5e01f2ca019536b8b72a6` |
+| max (127 x M) | 127 | `2b3ac480f04caf1eaa19a7f4b97dafe9` | `01534e32000102030405060708090a0b0c0d0e0f2b3ac480f04caf1eaa19a7f4b97dafe972835c6b376607f0c5dc14944cd17694e42ed89d1a23eb7cda07b7877a5e5a2a9a7f0eedb0c09b3403738c39f639b991580ad55770c2b82ab21c8db38d39cc4c7a8bd3c6dca56996835f94ad83d9dbe1a4eb17eceb96a2e76154c08ee042b6916c3ca65a0c7595346a1f7a96ff7e3fb05da10eca0181d480f1d38552487555144019d59ee66fd04dd6c6c0a3cb66ff31e79a209b6d6a2b8258efae282d99ad4f4c7a8bd3c6dca56996835f94ad83d9dbe1a4eb17eceb96a2e76154c08ee042b6916c3ca65a0c7595346a1f7a96ff7e3fb05da10eca0181d480f1d3855248755514767197f708be0c4ba91f371f19c38019171b4a5c00ae83f4aba8d6b5b7f1184b` |
+
+Negative cases (each must raise an authentication error, not return plaintext):
+
+| name | input |
+|---|---|
+| tampered tag | the `hello world` blob with its last byte XOR 0x01 |
+| bad version byte | the `hello world` blob with byte 0 set to `00` |
+| truncated | the `hello world` blob with its last byte removed |
+

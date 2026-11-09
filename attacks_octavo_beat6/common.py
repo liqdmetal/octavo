@@ -4,26 +4,32 @@ sys.dont_write_bytecode=True
 from pathlib import Path
 import hashlib
 EXPECTED_SHA='922a29d89be68b29a2be08873ff5a99a7cf264afebe1ece0387aa0f4fe56fe10'
-assert hashlib.sha256(Path('/workspace/sneak_n2/sneak_n2.py').read_bytes()).hexdigest()==EXPECTED_SHA
-sys.path.insert(0,'/workspace/sneak_n2')
+HERE=Path(__file__).resolve().parent
+REPO=HERE.parent
+LIVE=REPO/'sneak_n2.py'
+_actual=hashlib.sha256(LIVE.read_bytes()).hexdigest()
+if _actual!=EXPECTED_SHA:
+ raise SystemExit('attacks_octavo_beat6 is a historical report pinned to '+EXPECTED_SHA[:12]+
+  '; this tree has '+_actual[:12]+'. It cannot replay against another revision;'
+  ' see fix_beat0rot_verification/ for the current one.')
+sys.path.insert(0,str(REPO))
 import sneak_n2 as N
 import numpy as np
 import json, random, re, hmac, time, datetime, math
 from zoneinfo import ZoneInfo
-HERE=Path(__file__).resolve().parent
 LIVE_SHA=hashlib.sha256(Path(N.__file__).read_bytes()).hexdigest()
-assert N.__file__=='/workspace/sneak_n2/sneak_n2.py' and LIVE_SHA==EXPECTED_SHA,(N.__file__,LIVE_SHA)
+assert Path(N.__file__).resolve()==LIVE and LIVE_SHA==EXPECTED_SHA,(N.__file__,LIVE_SHA)
 def verify_live():
- cur=hashlib.sha256(Path('/workspace/sneak_n2/sneak_n2.py').read_bytes()).hexdigest()
+ cur=hashlib.sha256(LIVE.read_bytes()).hexdigest()
  assert cur==EXPECTED_SHA,('STOP: wrong live target',cur);return cur
-SEED=N.load_seed()
-HB=bytes.fromhex(re.search(r'blob \(195 bytes.*?: ([0-9a-f]+)',Path('/workspace/sneak_n2/hello-world.txt').read_text()).group(1))
+SEED=N.load_seed(str(REPO/'sneak1024-seed.txt'))
+HB=bytes.fromhex(re.search(r'blob \(195 bytes.*?: ([0-9a-f]+)',(REPO/'hello-world.txt').read_text()).group(1))
 _,PICKUP,NONCE,CT,TAG=N.split_blob(HB)
 _hb=lambda f:bytes.fromhex(re.search(r'blob \(195 bytes.*?: ([0-9a-f]+)',Path(f).read_text()).group(1))
 PREV_BLOB=_hb('/tmp/sneak_n2_pre_beat6/hello-world.txt')   # beat-7 era, pickup ee95ddb2...
 PREV7_BLOB=_hb('/tmp/sneak_n2_pre_beat7/hello-world.txt')  # pre-beat-7, pickup 76908595...
 SCH=N.Schedule(SEED,NONCE)
-DEMO_NONCE=bytes.fromhex(Path('/workspace/sneak_n2/demo-nonce.txt').read_text().strip())
+DEMO_NONCE=bytes.fromhex((REPO/'demo-nonce.txt').read_text().strip())
 def now():return datetime.datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %I:%M:%S %p %Z (America/New_York)')
 def save(name,obj):
  text=json.dumps(obj,indent=2,default=str)+'\n';(HERE/(name+'_results.json')).write_text(text);(HERE/(name+'_output.txt')).write_text(now()+'\n'+text);print(name,'saved',flush=True)

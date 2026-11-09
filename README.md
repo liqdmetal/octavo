@@ -15,11 +15,11 @@ import os
 from sneak_n2 import encrypt, decrypt
 
 key = os.urandom(128)                  # 1024-bit key
-blob = encrypt(b"meet at noon", key)   # 195-byte blob: SN2 | pickup | nonce | ciphertext | tag
+blob = encrypt(b"meet at noon", key)   # 196-byte blob: version | SN2 | pickup | nonce | ciphertext | tag
 print(decrypt(blob, key))              # b'meet at noon'
 ```
 
-Messages are limited to one block (127 bytes). `sneak1024-seed.txt` is the public demo key used for `hello-world.txt`; never use it for anything else. Run `python3 quick_check.py` for a portable sanity check. The full `test_sneak_n2.py` suite also compares against older revisions kept on the author's machine, so it won't run as-is on a fresh clone.
+Messages are limited to one block (127 bytes). `sneak1024-seed.txt` is the public demo key used for `hello-world.txt`; never use it for anything else. Run `python3 quick_check.py` for a portable sanity check. The full `test_sneak_n2.py` suite runs on a fresh clone (historical `/tmp` comparisons are skipped when those copies are missing).
 
 ## What's here
 
@@ -40,9 +40,57 @@ The rest of this README is the author's detailed revision log.
 
 ---
 
+## Current live revision — packaging (2026-11-09)
+
+This section supersedes the blob format, seed-path, and key-signature *mechanics*
+below. The round function is unchanged from the beat-0 pressure-rotation revision.
+Still N2 / SN2 (project name: Octavo), still homemade, **not for real secrets** (use
+AES-GCM-SIV, age or libsodium). No picture redraw.
+
+An independent review by [@liqdmetal](https://github.com/liqdmetal) ([issue #1](https://github.com/Kromatikus/octavo/issues/1))
+rebuilt the round function and reported no distinguisher, no forgery and no key
+recovery in about 535 million probes. The review also found packaging bugs that
+stopped a fresh clone from running. Those packaging bugs are what this revision
+fixes. That review is a negative experimental result, not a security proof.
+
+**What changed (packaging only).**
+- Default seed path is `sneak1024-seed.txt` next to `sneak_n2.py`, with no other
+  fallback. The runtime absolute path is not attested, so tags do not depend on
+  the install location.
+- `key_signature` no longer re-hashes source on every encrypt/decrypt. At import,
+  `sha256(mix_description())` is computed (when source is readable) and checked
+  against the embedded `EXPECTED_MIX_SHA256`. That digest is the StaffSponge
+  nonce for `key_signature`. A `.pyc`-only install uses the embedded constant.
+- Blobs are **196 bytes**: `version(1) || SN2 || pickup(16) || nonce(16) || ct(128) || tag(32)`,
+  with `FMT_VERSION = 1` at the front. `decrypt` raises `UnsupportedVersion`
+  ("unsupported version") for a wrong first byte *before* checking the tag. The
+  version byte is included in the HMAC.
+- Seeds with fewer than 32 distinct nonzero bytes are rejected (`ValueError`).
+- `test_sneak_n2.py` is portable: historical `/tmp` and sibling copies (under
+  `OCTAVO_WORK`, default `/workspace`) are skipped when missing, and the packaging fixes above are tested.
+
+**What did not change.** The 16-round function, S-boxes, schedule sponge domains
+(`SN2/K`, `SN2/M`, `SN2/C`, `SN2/G`), mixes, bow, rehair and cross-staff layers
+are the same as the beat-0 rotation revision. `demo-nonce.txt` is unchanged (it
+is a fixed schedule-test nonce, not the hello-world sample). The picture was
+not redrawn.
+
+- Live `sneak_n2.py` SHA-256: `127a9628c88fe9429bca7505a67aefb6b513106a3c1cd30d4d71a443354778cd`.
+- `EXPECTED_MIX_SHA256`: `d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd`.
+- key_sig (demo seed): `a09a745ee41908c969c21a7d45577870`.
+- hello-world pickup `ecd5b4a32534bbea72ae2bdaaa2bb589`, nonce `408787444f355728a176e74ad1d69691` (see `hello-world.txt`).
+- Blob size: 196 bytes.
+
+
+Older 195-byte `SN2...` blobs now fail with **unsupported version**, not
+"tag mismatch". This revision's tags also differ because the attested
+`mix_description` and the `key_signature` sponge nonce changed.
+
+---
+
 # Sneak staff-core N2 (8-bit cells)
 
-## Current live revision — beat-0 pressure rotation fix (2026-11-09)
+## Previous revision — beat-0 pressure rotation fix (2026-11-09)
 
 This section supersedes everything below for the bow, including the beat-6 section that
 follows. Still N2 / SN2 (project name: Octavo), still homemade, **not for real secrets** (use

@@ -12,16 +12,22 @@ See SPEC.md.
 """
 import hashlib, hmac, os, json, inspect, ast, textwrap, types
 
-VERSION = b"SN2"
+VERSION = b"SN2"                 # magic after the format-version byte; sponge domains stay b"SN2/"
+FMT_VERSION = 1                   # one-byte blob format version, front of every blob
 NF, NB, NR = 16, 8, 16            # faces, beats, rounds (16 rounds <-> 16 faces)
 CELL_BITS = 8                     # one byte per beat (was a 4-bit nibble)
 NONCE_LEN, BLOCK_LEN, TAG_LEN = 16, 128, 32
 PICKUP_LEN = 16                   # random anacrusis before the downbeat (os.urandom, fresh per encrypt)
-BLOB_LEN = len(VERSION) + PICKUP_LEN + NONCE_LEN + BLOCK_LEN + TAG_LEN    # 195
+BLOB_LEN = 1 + len(VERSION) + PICKUP_LEN + NONCE_LEN + BLOCK_LEN + TAG_LEN    # 196
 MAX_MSG = 127
-PK0, N0 = 3, 3 + PICKUP_LEN                                    # pickup = blob[3:19], nonce = blob[19:35]
-CT0, CT1 = N0 + NONCE_LEN, N0 + NONCE_LEN + BLOCK_LEN          # ct = blob[35:163], tag = blob[163:195]
-SEED_PATH = "/workspace/sneak1024-seed.txt"
+PK0, N0 = 1 + len(VERSION), 1 + len(VERSION) + PICKUP_LEN      # pickup = blob[4:20], nonce = blob[20:36]
+CT0, CT1 = N0 + NONCE_LEN, N0 + NONCE_LEN + BLOCK_LEN          # ct = blob[36:164], tag = blob[164:196]
+# Resolved next to this file so a clone works. The runtime absolute value is not attested
+# (see _ATTEST_SKIP); otherwise tags would depend on the install path.
+SEED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sneak1024-seed.txt")
+# sha256(mix_description()) hex; used as the StaffSponge nonce for key_signature.
+# Excluded from attestation so this constant is not part of what it names (chicken-and-egg).
+EXPECTED_MIX_SHA256 = "d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd"
 
 # SM4 (SMS4) 8-bit S-box, GB/T 32907-2016 Fig./Table "S-box", as printed in draft-ribose-cfrg-sm4-10 sec. 6.2.3
 # (Tse, Wong, Saarinen, IRTF CFRG, 2018). Published DDT max 4/256 (2^-6), nonlinearity 112 (LAT max |bias| 16/256).
@@ -37,19 +43,27 @@ assert len(SM4_SBOX) == 256 and len(set(SM4_SBOX)) == 256
 
 class AuthError(ValueError): """Tag mismatch / malformed blob. No payload is ever returned."""
 class DecodeError(ValueError): """Tag was valid but the decrypted block is not a well-formed encoding."""
+class UnsupportedVersion(AuthError): """Blob format version is not the one this revision speaks."""
 
 # ---------------------------------------------------------------- seed
-def load_seed(path=SEED_PATH) -> bytes:
-    """Same file and parsing as N1 (256 hex digits = 1024 bits), returned as 128 big-endian bytes."""
+def load_seed(path=None) -> bytes:
+    """Same file and parsing as N1 (256 hex digits = 1024 bits), returned as 128 big-endian bytes.
+    Default: sneak1024-seed.txt next to this module."""
+    if path is None:
+        path = SEED_PATH
     h = "".join(c for c in open(path).read().lower() if c in "0123456789abcdef")
     if len(h) != 256: raise ValueError(f"seed must be 256 hex digits, got {len(h)}")
     return bytes.fromhex(h)
 
 def _seed_bytes(seed) -> bytes:
-    if seed is None: return load_seed()
-    if isinstance(seed, int): return seed.to_bytes(128, "big")          # N1-style integer key
-    seed = bytes(seed)
+    if seed is None: seed = load_seed()
+    elif isinstance(seed, int): seed = seed.to_bytes(128, "big")          # N1-style integer key
+    else: seed = bytes(seed)
     if len(seed) != 128: raise ValueError("seed must be 128 bytes (1024 bits)")
+    # Weak-seed rule: at least 32 distinct nonzero bytes (rejects all-zero, seed=1, repeated-byte keys).
+    nonzero = [b for b in seed if b]
+    if len(set(nonzero)) < 32:
+        raise ValueError("weak seed: need at least 32 distinct nonzero bytes")
     return seed
 
 # ---------------------------------------------------------------- staff sponge (SHA-256 underneath)
@@ -451,7 +465,7 @@ def unodd_restack(staff, SIa, SIb):
 # helpers defined in OTHER modules that a foreign replacement function calls, mutation of
 # objects inside a function's runtime state, code whose __code__ differs from the file
 # inspect reads, or an attacker who also patches inspect/mix_description consistently.
-MIX_CODE_ROOTS = ("encrypt", "decrypt", "siv_nonce", "key_signature", "split_blob")
+MIX_CODE_ROOTS = ("encrypt", "decrypt", "siv_nonce", "key_signature", "split_blob", "mix_description")
 MIX_CODE_FUNCS = (
     "bar_mix", "bar_unmix", "triplet_mix", "triplet_unmix", "triplet_apply",
     "triplet_det", "triplet_inv", "bow_pressure", "unbow_pressure",
@@ -466,7 +480,7 @@ MIX_CODE_FUNCS = (
     "Schedule", "StaffSponge", "keyed_sbox", "mat_apply", "mat_invertible",
     "staff_clef", "siv_nonce", "_tag", "encrypt", "decrypt", "split_blob",
     "key_signature", "mix_description", "mix_code_closure", "_referenced_globals", "_canon_data",
-    "_seed_bytes", "load_seed", "AuthError", "DecodeError",
+    "_seed_bytes", "load_seed", "AuthError", "DecodeError", "UnsupportedVersion",
 )
 
 def _referenced_globals(obj):
@@ -474,12 +488,20 @@ def _referenced_globals(obj):
     tree = ast.parse(textwrap.dedent(inspect.getsource(obj)))
     return {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
 
+# Runtime attestation helpers and path-dependent values. Not hashed: EXPECTED_MIX_SHA256
+# is the digest of the hash itself, and SEED_PATH is an absolute install location.
+_ATTEST_SKIP = frozenset({
+    "EXPECTED_MIX_SHA256", "_MIX_SHA256", "_SOURCE_AVAILABLE", "_ATTEST_SKIP",
+    "SEED_PATH",
+})
+
 def mix_code_closure(roots=None):
     """(code names, data names) of module globals reachable from roots, recomputed per call."""
     g = globals(); code, data = set(), set()
     todo = list(MIX_CODE_ROOTS if roots is None else roots)
     while todo:
         name = todo.pop()
+        if name in _ATTEST_SKIP: continue
         if name in code or name in data or name not in g: continue
         obj = g[name]
         if isinstance(obj, types.ModuleType): continue
@@ -540,8 +562,11 @@ def mix_description():
         sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
 
 def key_signature(seed=None):
-    """Seed-keyed commitment to this process's score; not a blob field or API override."""
-    return StaffSponge(b"G", _seed_bytes(seed), mix_description()).take(16)
+    """Seed-keyed commitment to this revision's attested mix_description digest.
+    The sponge nonce is the 32-byte sha256(mix_description()), computed once at
+    import from source or taken from EXPECTED_MIX_SHA256 when source is absent
+    (a .pyc-only install). Not a blob field or API override."""
+    return StaffSponge(b"G", _seed_bytes(seed), bytes.fromhex(_MIX_SHA256)).take(16)
 
 # ---------------------------------------------------------------- shell bridges (inner <-> outer)
 def shell_mix(g, bridge, r):
@@ -634,10 +659,10 @@ def siv_nonce(msg: bytes, pickup: bytes, seed=None) -> bytes:
     return hashlib.sha256(staff_clef(seed) + pickup + encode_block(bytes(msg))).digest()[:NONCE_LEN]
 
 def _tag(mac_key, pickup, nonce, ct, clef, key_sig):
-    return hmac.new(mac_key, clef + key_sig + VERSION + pickup + nonce + ct, hashlib.sha256).digest()
+    return hmac.new(mac_key, clef + key_sig + bytes([FMT_VERSION]) + VERSION + pickup + nonce + ct, hashlib.sha256).digest()
 
 def encrypt(msg: bytes, seed=None, nonce: bytes = None) -> bytes:
-    """blob = b"SN2" || pickup(16) || nonce(16) || ct(128) || HMAC-SHA256(mac_key, clef || key_sig || b"SN2" || pickup || nonce || ct).
+    """blob = version(1) || b"SN2" || pickup(16) || nonce(16) || ct(128) || HMAC-SHA256(mac_key, clef || key_sig || version || b"SN2" || pickup || nonce || ct).
     pickup = 16 fresh OS-random bytes every call (no public pickup argument, by design);
     nonce = SHA-256(clef || pickup || encode_block(msg))[:16]; a caller nonce must equal it (ValueError otherwise)."""
     msg = bytes(msg); block = encode_block(msg); clef = staff_clef(seed)
@@ -648,18 +673,20 @@ def encrypt(msg: bytes, seed=None, nonce: bytes = None) -> bytes:
     nonce = syn
     sch = Schedule(seed, nonce)
     ct = grid_to_bytes(encrypt_grid(bytes_to_grid(block), sch))
-    return VERSION + pickup + nonce + ct + _tag(sch.mac_key, pickup, nonce, ct, clef, key_signature(seed))
+    return bytes([FMT_VERSION]) + VERSION + pickup + nonce + ct + _tag(sch.mac_key, pickup, nonce, ct, clef, key_signature(seed))
 
 def split_blob(blob: bytes):
-    """-> (version, pickup, nonce, ct, tag)"""
+    """-> (version_prefix, pickup, nonce, ct, tag) where version_prefix is bytes([FMT_VERSION]) + b'SN2'."""
     return blob[:PK0], blob[PK0:N0], blob[N0:CT0], blob[CT0:CT1], blob[CT1:]
 
 def decrypt(blob: bytes, seed=None) -> bytes:
-    """Tag is checked FIRST (constant-time compare). On any mismatch: AuthError, no payload."""
+    """Format version is checked first, then length, then the tag (constant-time compare). On any mismatch: AuthError, no payload."""
     blob = bytes(blob)
+    if len(blob) < 1: raise AuthError("bad blob length")
+    if blob[0] != FMT_VERSION: raise UnsupportedVersion("unsupported version")
     if len(blob) != BLOB_LEN: raise AuthError("bad blob length")
     v, pickup, nonce, ct, tag = split_blob(blob)
-    if not hmac.compare_digest(v, VERSION): raise AuthError("bad version prefix")
+    if not hmac.compare_digest(v, bytes([FMT_VERSION]) + VERSION): raise AuthError("bad version prefix")
     clef = staff_clef(seed); sch = Schedule(seed, nonce)
     if not hmac.compare_digest(tag, _tag(sch.mac_key, pickup, nonce, ct, clef, key_signature(seed))): raise AuthError("tag mismatch")
     b = grid_to_bytes(decrypt_grid(bytes_to_grid(ct), sch))
@@ -674,3 +701,21 @@ def encrypt_hello(seed=None):
     blob = encrypt(b"hello world", seed)
     v, pk, n, ct, tag = split_blob(blob); g = bytes_to_grid(ct)
     return dict(blob=blob, pickup=pk, nonce=n, ct=ct, tag=tag, grid=g, rows=grid_rows(g))
+
+def _init_attestation():
+    """Compute mix_description() once from source and check it against EXPECTED_MIX_SHA256.
+    If inspect cannot read source (a .pyc-only install), use the embedded digest."""
+    global _MIX_SHA256, _SOURCE_AVAILABLE
+    try:
+        digest = hashlib.sha256(mix_description()).hexdigest()
+        _SOURCE_AVAILABLE = True
+        if EXPECTED_MIX_SHA256 != "TO_BE_FILLED" and digest != EXPECTED_MIX_SHA256:
+            raise RuntimeError("embedded mix attestation mismatch: computed %s != %s" % (digest, EXPECTED_MIX_SHA256))
+        _MIX_SHA256 = digest
+    except OSError:
+        if EXPECTED_MIX_SHA256 == "TO_BE_FILLED":
+            raise RuntimeError("no source and no embedded mix attestation")
+        _SOURCE_AVAILABLE = False
+        _MIX_SHA256 = EXPECTED_MIX_SHA256
+
+_init_attestation()

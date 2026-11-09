@@ -1,15 +1,16 @@
-# octavo002 — frozen Octavo snapshot
+# octavo003 — frozen Octavo snapshot
 
-Saved 2026-11-09 ~10:36 AM EST from live /workspace/sneak_n2 (Python caches excluded), plus sneak1024-seed.txt.
+Saved 2026-11-09 from live /workspace/sneak_n2 (Python caches excluded), plus sneak1024-seed.txt.
 
-Contents: Octavo as in octavo001 plus the beat-0 pressure rotation fix: BOW_STROKES unchanged, BOW_PRESSURE_ROT = (0,0,0,3,0,0,5), so strokes (4,5,0), (6,7,0), (5,6,0) read beat 0 rotated by 0, 3, 5 bits.
+This is the packaging revision on top of octavo002 (beat-0 pressure rotation). The round function is unchanged.
 
-- sneak_n2.py SHA-256: 25cfe812ac6a5d5c22a26ba17440843f417dd44e060498850a78b68964612ff0
-- key_sig: 1946c5ac57f19d045eeacd9e5ed823fb
-- Tests at freeze: 237/237 (recorded on live)
-- hello-world pickup 7d4b4694011a7ab66e7f5f24c235c3f8, nonce 8855fdf3a1cb2cc843c4d1250f484697
-- Verification: fix_beat0rot_verification/ (0 singletons on all beats; 2^21-base even-beat scan)
-- Latest attack report: attacks_octavo_beat6/ (made on the previous revision)
-- sneak-staff-n2.png redrawn after the snapshot for this revision (current).
+- sneak_n2.py SHA-256: 127a9628c88fe9429bca7505a67aefb6b513106a3c1cd30d4d71a443354778cd
+- EXPECTED_MIX_SHA256: d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd
+- key_sig (demo seed): a09a745ee41908c969c21a7d45577870
+- Tests at freeze: 245/245 (0 skipped on the author's machine)
+- Blob size: 196 bytes (version byte 1 || SN2 || pickup || nonce || ct || tag)
+- hello-world pickup ecd5b4a32534bbea72ae2bdaaa2bb589, nonce 408787444f355728a176e74ad1d69691
+- Changes: module-relative seed path; cached/embedded key-signature digest; format version byte; weak-seed rejection; portable tests. Triggered by independent review in https://github.com/Kromatikus/octavo/issues/1 (@liqdmetal). Round function unchanged vs octavo002.
+- Picture not redrawn.
 
 Homemade, NOT for real secrets. Use AES-GCM-SIV, age, or libsodium.

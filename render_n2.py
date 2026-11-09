@@ -5,12 +5,13 @@
 # Seed split: INNER seed (first 128 hex digits) on a wine shell hugging the inner octahedron;
 # OUTER seed (last 128) on the amber shell around the outer octahedron.
 import sys, math, os, re
+WORK=os.environ.get("OCTAVO_WORK","/workspace")  # parent of the sneak_n2 folder
 sys.dont_write_bytecode = True
-sys.path.insert(0,'/workspace/sneak_n2')
+sys.path.insert(0,os.path.join(WORK,'sneak_n2'))
 from PIL import Image, ImageDraw, ImageFont
 import sneak_n2 as N
 KEY=N.load_seed()
-HW=open('/workspace/sneak_n2/hello-world.txt').read()
+HW=open(os.path.join(WORK,'sneak_n2','hello-world.txt')).read()
 def _hx(label):
     m=re.search(rf'{label}.*?: ([0-9a-f]+)', HW, re.I|re.S)
     if not m: raise SystemExit(f'missing {label} in hello-world.txt')
@@ -329,4 +330,4 @@ parts=[('inner ',wine),(INNER_SEED.upper(),wine),(' | ',ink),(OUTER_SEED.upper()
 tw=sum(d.textlength(t_,font=seedcap) for t_,_ in parts); x_=(W-tw)/2; y_=H-340+4*48+4
 for t_,c_ in parts: d.text((x_,y_),t_,font=seedcap,fill=c_); x_+=d.textlength(t_,font=seedcap)
 print('seed shell extents:',[tuple(round(c) for c in P(tuple(RS*v for v in VX[k]))) for k in VX])
-img.convert('RGB').save('/workspace/sneak-staff-n2.png'); img.convert('RGB').save('/workspace/sneak_n2/sneak-staff-n2.png'); print('wrote',img.size)
+img.convert('RGB').save(os.path.join(WORK,'sneak-staff-n2.png')); img.convert('RGB').save(os.path.join(WORK,'sneak_n2','sneak-staff-n2.png')); print('wrote',img.size)

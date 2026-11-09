@@ -1,29 +1,37 @@
 PASS seed is the 1024-bit file (128 bytes), same parse as N1
-PASS blob length 195 = 3 + 16 + 16 + 128 + 32
-PASS blob starts with b'SN2'
+PASS blob length 196 = 1 + 3 + 16 + 16 + 128 + 32
+PASS blob starts with version byte 1 then b'SN2'
+PASS SEED_PATH is sneak1024-seed.txt next to the module
+PASS load_seed() finds the module-relative demo seed
+PASS embedded mix digest matches a fresh sha256(mix_description())
+PASS FMT_VERSION is 1 and is authenticated in the tag
+PASS old 195-byte SN2 blob raises UnsupportedVersion before a tag check
+PASS version byte 2 on a 196-byte blob raises UnsupportedVersion, not tag mismatch
+PASS weak seeds rejected: all-zero, integer 1, 31 distinct nonzero bytes
+PASS real demo seed and os.urandom(128) are accepted
 PASS roundtrip hello world (SIV nonce)
-PASS hello-world.txt demo blob (195 bytes) decrypts to b'hello world' and its pickup/nonce/ct/tag lines match live split_blob
+PASS hello-world.txt demo blob (196 bytes) decrypts to b'hello world' and its pickup/nonce/ct/tag lines match live split_blob
 PASS roundtrip random messages, every length 0..127 (x3)
 PASS roundtrip edge msgs (0xFF*127, trailing zeros, 0x80*127, empty)
 PASS oversize message (128, 200 bytes) rejected
 PASS int seed (N1-style) accepted and equals bytes seed (cross-decrypt)
-PASS every single-bit flip of the 195-byte blob (1560: version, pickup, nonce, ct, tag) fails closed
-PASS all 24 single-bit flips in version raise AuthError (no payload)
+PASS every single-bit flip of the 196-byte blob (1568: version, pickup, nonce, ct, tag) fails closed
+PASS all 32 single-bit flips in version raise AuthError (no payload)
 PASS all 128 single-bit flips in pickup raise AuthError (no payload)
 PASS all 128 single-bit flips in nonce raise AuthError (no payload)
 PASS all 1024 single-bit flips in ciphertext raise AuthError (no payload)
 PASS all 256 single-bit flips in tag raise AuthError (no payload)
-random 195-byte blobs accepted: 0/1000
-PASS 1000 random 195-byte blobs: 0 accepted
-random blobs with correct 'SN2' prefix accepted: 0/1000
-PASS 1000 random blobs WITH correct 'SN2' prefix: 0 accepted
-PASS truncated blobs (every length 0..194) fail closed
+random 196-byte blobs accepted: 0/1000
+PASS 1000 random 196-byte blobs: 0 accepted
+random blobs with correct version+SN2 prefix accepted: 0/1000
+PASS 1000 random blobs WITH correct version+SN2 prefix: 0 accepted
+PASS truncated blobs (every length 0..195) fail closed
 PASS old 4-bit 115-byte blob fails closed on length (AuthError); zero-padded / re-wrapped to 179 and 195 bytes also fails closed
 PASS old metered 203-byte blobs (looped and unlooped) fail closed on length (AuthError), also cut to 179 / 195 bytes
 PASS pre-bar 8-bit 179-byte demo blob now fails the clef-bound tag -> AuthError, no payload
-PASS pre-pickup 179-byte hello-world blob (from /tmp/sneak_n2_pre_pickup) fails closed on length -> AuthError, no payload
+PASS pre-pickup 179-byte hello-world blob (from /tmp/sneak_n2_pre_pickup) fails closed as unsupported version
 PASS staffs are linear: no staff-loop layer (no staff_loop/staff_unloop/LOOP_A/LOOP_B) and no loop step in round_enc/round_dec
-PASS 8-bit cells: 16 faces x 8 byte-beats, 128-byte block, 195-byte blob, max payload 127
+PASS 8-bit cells: 16 faces x 8 byte-beats, 128-byte block, 196-byte blob, max payload 127
 PASS extended blob (extra byte) fails closed
 PASS version prefix changed to SN1 / SN3 / sn2 fails closed
 PASS splicing: ct+tag of one blob with nonce of another fails
@@ -51,7 +59,7 @@ PASS 1-bit seed flip changes ~half the schedule bits (28 positions)
 PASS domain separation: MAC stream (b'M') and schedule stream (b'K') differ and MAC key not in schedule material
 PASS clef = StaffSponge domain 'C', seed + zero nonce (independent hashlib check), 16 bytes, not in blob
 PASS clef depends on seed
-PASS tag = HMAC-SHA256(mac_key, clef || key_sig || 'SN2' || pickup || nonce || ct) (independent hmac check)
+PASS tag = HMAC-SHA256(mac_key, clef || key_sig || version || 'SN2' || pickup || nonce || ct) (independent hmac check)
 PASS MAC key derived from seed via SHA-256 domain 'M' (independent check with hashlib)
 PASS base S-box table is the published SM4 S-box: GB/T 32907-2016 Example 1 and draft-ribose-cfrg-sm4 Example 4 reproduce
 SM4 base S-box: DDT max 4/256 (best differential prob 4/256 = 2^-6), LAT max |count-128| 16/256 (|bias| 16/256 = 2^-4, nonlinearity 112)
@@ -127,25 +135,25 @@ PASS S2 -> encore -> xor rk -> next-round S is NOT a single-cell function (1-cel
 PASS old 179-byte blobs from /tmp/sneak_n2_8bit_precolor2 and /tmp/sneak_n2_pre_clef_encore_siv raise AuthError (4 demo blobs)
 PASS pre-triplet + pre-join + testn3 old-length demo blobs fail closed
 PASS 256 random pre-join-pairs blobs fail closed (AuthError or DecodeError), none returns a plaintext
-PASS pre-triplet/pre-join/testn3/pre-field demo blobs (179 bytes) now fail on length -> AuthError (pickup changed length; NOT a key signature)
+PASS pre-triplet/pre-join/testn3/pre-field demo blobs (179 bytes) now fail as unsupported version (not a key signature)
 PASS 256 random pre-triplet blobs fail closed (AuthError or DecodeError), none returns plaintext
 PASS 512 random pre-clef blobs (valid under old MAC) all raise AuthError
-PASS pickup-era 195-byte recorded blob now raises AuthError on TAG (not DecodeError)
-PASS blob regions unchanged
+PASS pickup-era 195-byte recorded blob now raises unsupported version (not DecodeError)
+PASS blob regions are version + SN2 + pickup + nonce + ct + tag
 PASS mix2 high-bit derivative is (0x80,0xF5), not integer singleton
 PASS mix2 matrix determinant 3, characteristic-two inverse
 PASS triplet tables and integer arithmetic unchanged from pickup era
-PASS key signature uses domain G and canonical running-score description (independent hashlib)
+PASS key signature uses domain G and sha256(mix_description()) as sponge nonce (independent hashlib)
 PASS key signature has no public encrypt/decrypt override and no blob field
-PASS altered pair score: 195-byte valid alternate blob rejected on live TAG as AuthError
-PASS altered triplet score: 195-byte valid alternate blob rejected on live TAG as AuthError
-PASS altered mix2 score: 195-byte valid alternate blob rejected on live TAG as AuthError
-PASS score commitment changes with FIELD_POLY
-PASS score commitment changes with BOW_STROKES
-PASS score commitment changes with BOW_PRESSURE_ROT
-PASS score commitment changes with BOW_ROT_BASE
-PASS score commitment changes with BOW_ROT_MOD
-PASS score commitment changes with BOW_R2_SHIFT
+PASS altered pair score: 196-byte alternate blob fails closed on live decrypt
+PASS altered triplet score: 196-byte alternate blob fails closed on live decrypt
+PASS altered mix2 score: 196-byte alternate blob fails closed on live decrypt
+PASS mix_description changes with FIELD_POLY (key_sig is cached at import)
+PASS mix_description changes with BOW_STROKES (key_sig is cached at import)
+PASS mix_description changes with BOW_PRESSURE_ROT (key_sig is cached at import)
+PASS mix_description changes with BOW_ROT_BASE (key_sig is cached at import)
+PASS mix_description changes with BOW_ROT_MOD (key_sig is cached at import)
+PASS mix_description changes with BOW_R2_SHIFT (key_sig is cached at import)
 PASS bow strokes match open even then interior odd order, pressure read only may wrap
 PASS BOW_PRESSURE_ROT aligned with BOW_STROKES: beat-0 readers use 0,3,5; others identity
 PASS bow stroke inverse, exhaustive byte pairs for pressures 0, 127, 255
@@ -158,20 +166,20 @@ PASS CROSS_ADJACENT is an oriented perfect matching of 16 staffs
 PASS cross layer order is opposite, radial, adjacent, bridge
 PASS cross-staff two-sided inverse and no input/row mutation, 1000 random grids
 PASS canonical description includes cross matchings, effective layer order and placement
-PASS score commitment changes with CROSS_OPPOSITE
-PASS score commitment changes with CROSS_RADIAL
-PASS score commitment changes with CROSS_ADJACENT
-PASS score commitment changes with CROSS_BRIDGE
-PASS score commitment changes with CROSS_LAYERS
-PASS altered effective cross order roundtrips locally but fails live tag
-PASS pre-cross 195-byte hello-world pickup 28c124 now fails closed on TAG
-PASS triplets, schedule, weave, bridges, encoding and AE formula unchanged from pre-cross (B0/rehair and bow pressure-rot intentionally changed)
+PASS mix_description changes with CROSS_OPPOSITE (key_sig is cached at import)
+PASS mix_description changes with CROSS_RADIAL (key_sig is cached at import)
+PASS mix_description changes with CROSS_ADJACENT (key_sig is cached at import)
+PASS mix_description changes with CROSS_BRIDGE (key_sig is cached at import)
+PASS mix_description changes with CROSS_LAYERS (key_sig is cached at import)
+PASS altered effective cross order roundtrips locally but fails closed on live decrypt
+PASS pre-cross 195-byte hello-world pickup 28c124 now fails as unsupported version
+PASS triplets, schedule, weave, bridges, encoding unchanged from pre-cross (packaging changed encrypt/decrypt/_tag; B0/rehair/bow intentionally changed earlier)
 PASS bow_pressure/unbow_pressure sources differ from pre-cross (beat-0 pressure-rot fix applies rotl8 view)
 cell-2 one-round spread (300 pairs, demo schedule; first delta 0x5a): min 16, max 16, union [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], confined 0/300
 PASS cell-2 previous five-staff confinement broken in all 300 pairs; union all 16 staffs
 PASS testn4 frozen source hash unchanged
 PASS testn3 frozen source hash unchanged
-PASS pre-four 195-byte hello-world pickup 831a4499 fails on tag, not DecodeError
+PASS pre-four 195-byte hello-world pickup 831a4499 fails as unsupported version, not DecodeError
 PASS CROSS_BRIDGE is intended partial oriented disjoint matching, not a perfect matching
 four-layer cross graph component from 0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 PASS four-layer cross graph is one connected 16-staff component
@@ -188,14 +196,14 @@ per-beat singletons (130,560 cases each), bow alone: [0, 7, 0, 120, 0, 127, 0, 2
 PASS bow+odd_restack has no singletons for 1,044,480 all-beat input cases (8 beats x 130,560, all 255 deltas; odd subset = the old 522,240)
 PASS ARX rotation constants retired (no B0_ROT_*/ODD_RESTACK_R* attributes)
 PASS latin_pair/latin_unpair/round_enc/round_dec are in MIX_CODE_FUNCS
-PASS description and key_sig change when latin_pair object is replaced
-PASS description and key_sig change when latin_unpair object is replaced
-PASS description and key_sig change when round_enc object is replaced
-PASS description and key_sig change when round_dec object is replaced
+PASS description changes when latin_pair object is replaced (key_sig is cached at import)
+PASS description changes when latin_unpair object is replaced (key_sig is cached at import)
+PASS description changes when round_enc object is replaced (key_sig is cached at import)
+PASS description changes when round_dec object is replaced (key_sig is cached at import)
 PASS B0 description is keyed Latin pair (field MIX2 then S/S2), not ARX or the unused matrix
 PASS description records keyed Latin odd rehair and pairs
-PASS pre-rotation-retune 195-byte hello-world pickup 724da1f4 fails on tag, not DecodeError
-PASS pre-latin 195-byte hello-world pickup a287436b fails on tag, not DecodeError
+PASS pre-rotation-retune 195-byte hello-world pickup 724da1f4 fails as unsupported version, not DecodeError
+PASS pre-latin 195-byte hello-world pickup a287436b fails as unsupported version, not DecodeError
 PASS latin_unpair inverse formula: v = gf_mul(gf_inv(3), x^y), u = x^v equals mix2_inv on all 65,536 (x,y)
 PASS keyed B0 and rehair pair are bijections with exact two-sided inverses for all 16 rounds' tables (65,536 pairs each)
 B0 exhaustive single-input singletons (u column, v column) over 2x255x65,536, round-0 tables: [0, 0] (ARX 2,7 had [0, 10752])
@@ -216,64 +224,64 @@ pre-fix beat-6 witnesses, bow+rehair changed bytes per round table: [[4, 4, 4, 4
 PASS the 4 pre-fix beat-6 witnesses (3 all-table + REPORT mechanism example) now change >=2 bytes for all 16 rounds' tables
 PASS negative control: with pre-beat6 (4,5,6) strokes AND all-zero BOW_PRESSURE_ROT patched in, the 4 beat-6 witnesses are single-byte under all 16 tables
 PASS NumPy bow/rehair model equals live bow_pressure/odd_restack on 5,000 random staffs
-NumPy bow+rehair singleton scan (round-0 tables), cases per beat [4177920, 4177920, 4177920, 4177920, 4177920, 4177920, 16711680, 4177920], singletons [0, 0, 0, 0, 0, 0, 0, 0], 19.6s
+NumPy bow+rehair singleton scan (round-0 tables), cases per beat [4177920, 4177920, 4177920, 4177920, 4177920, 4177920, 16711680, 4177920], singletons [0, 0, 0, 0, 0, 0, 0, 0], 17.6s
 PASS beat-6 scan: 0 singletons in 16,711,680 beat-6 cases (65,536 random bases x 255 deltas; pre-fix layout gave ~19) and 0 on every other beat (4,177,920 each)
-PASS pre-beat6-fix 195-byte hello-world pickup ee95ddb2 fails on tag, not DecodeError
-PASS pre-beat0rot 195-byte hello-world pickup d450337d fails on tag, not DecodeError
+PASS pre-beat6-fix 195-byte hello-world pickup ee95ddb2 fails as unsupported version, not DecodeError
+PASS pre-beat0rot 195-byte hello-world pickup d450337d fails as unsupported version, not DecodeError
 PASS beat-0 pressure views are p, rotl8(p,3), rotl8(p,5) for all 256 pressure bytes
 beat-0 reader (r1,r2) distinctness over 256 p: shared-all=4, all-three-distinct=226
 PASS beat-0 readers rarely share one (r1,r2); usually all three distinct (shared < 16, distinct3 > 180)
 bow-alone best diff log2 (2^12 bases): beat0=-9.42, beat6=-7.05, beat7=-6.96 (pre-fix live ~-8.1/-5.6/-4.9)
 PASS bow-alone best differentials on beats 0/6/7 improved vs pre-fix live (~-8.1/-5.6/-4.9)
 PASS mix_description bow records pressure_rot and the view-then-r1/r2 formula
-PASS pre-beat7-fix 195-byte hello-world pickup 76908595 fails on tag, not DecodeError
+PASS pre-beat7-fix 195-byte hello-world pickup 76908595 fails as unsupported version, not DecodeError
 keyed pair exact affine output bits per round (col,bit,u_mask,v_mask,const): [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 PASS keyed pair: no output bit is an exact affine function of the inputs (all 16 rounds' tables)
-PASS pre-sig-gap 195-byte hello-world pickup 24d554eb fails on tag, not DecodeError
-reachable functions/classes: 57 ; reachable module data: ['BARS', 'BARS_INV', 'BLOB_LEN', 'BLOCK_LEN', 'BOW_PRESSURE_ROT', 'BOW_R2_SHIFT', 'BOW_ROT_BASE', 'BOW_ROT_MOD', 'BOW_STROKES', 'CROSS_ADJACENT', 'CROSS_BRIDGE', 'CROSS_LAYERS', 'CROSS_OPPOSITE', 'CROSS_RADIAL', 'CT0', 'CT1', 'FIELD_POLY', 'LAYERS', 'MAX_MSG', 'MIX2_INV', 'MIX2_MATRIX', 'MIX_CODE_FUNCS', 'MIX_CODE_ROOTS', 'N0', 'NB', 'NF', 'NONCE_LEN', 'NR', 'PICKUP_LEN', 'PK0', 'SEED_PATH', 'SM4_SBOX', 'TRIPLETS', 'TRIPLETS_INV', 'VERSION', '_GF_MUL']
+PASS pre-sig-gap 195-byte hello-world pickup 24d554eb fails as unsupported version, not DecodeError
+reachable functions/classes: 58 ; reachable module data: ['BARS', 'BARS_INV', 'BLOB_LEN', 'BLOCK_LEN', 'BOW_PRESSURE_ROT', 'BOW_R2_SHIFT', 'BOW_ROT_BASE', 'BOW_ROT_MOD', 'BOW_STROKES', 'CROSS_ADJACENT', 'CROSS_BRIDGE', 'CROSS_LAYERS', 'CROSS_OPPOSITE', 'CROSS_RADIAL', 'CT0', 'CT1', 'FIELD_POLY', 'FMT_VERSION', 'LAYERS', 'MAX_MSG', 'MIX2_INV', 'MIX2_MATRIX', 'MIX_CODE_FUNCS', 'MIX_CODE_ROOTS', 'N0', 'NB', 'NF', 'NONCE_LEN', 'NR', 'PICKUP_LEN', 'PK0', 'SM4_SBOX', 'TRIPLETS', 'TRIPLETS_INV', 'VERSION', '_GF_MUL']
 PASS nothing reachable from encrypt/decrypt/siv_nonce/key_signature/split_blob is missing from MIX_CODE_FUNCS; listed extras are only the import-time table builders
-module functions/classes NOT in coverage: ['ddt_max', 'encrypt_hello', 'grid_rows', 'lat_max']
-PASS only non-cipher helpers are outside coverage (ddt_max, lat_max, grid_rows, encrypt_hello)
+module functions/classes NOT in coverage: ['_init_attestation', 'ddt_max', 'encrypt_hello', 'grid_rows', 'lat_max']
+PASS only non-cipher helpers are outside coverage (ddt_max, lat_max, grid_rows, encrypt_hello, import attestation)
 PASS closure includes staff_mix/staff_unmix/shell_mix/shell_unmix/weave/unweave/xor_grid/Schedule/keyed_sbox/encode_block/encrypt_grid/decrypt_grid
 PASS module data hashed includes BARS, BARS_INV, TRIPLETS(_INV), CROSS_*, BOW_* (incl. BOW_PRESSURE_ROT), LAYERS, SM4_SBOX, _GF_MUL, MIX2_*, sizes
 PASS independent recomputation of mix_code and mix_data digests matches
-modified-copy replacements: 60 functions/classes; key_sig changed AND live hello-world -> tag mismatch for 60; failures []
-PASS modified copy of staff_mix: key_sig changes and live hello-world decrypt fails with AuthError tag mismatch
-PASS modified copy of staff_unmix: key_sig changes and live hello-world decrypt fails with AuthError tag mismatch
-PASS modified copy of shell_mix: key_sig changes and live hello-world decrypt fails with AuthError tag mismatch
-PASS modified copy of shell_unmix: key_sig changes and live hello-world decrypt fails with AuthError tag mismatch
-PASS modified copy of weave: key_sig changes and live hello-world decrypt fails with AuthError tag mismatch
-PASS modified copy of unweave: key_sig changes and live hello-world decrypt fails with AuthError tag mismatch
-PASS modified copy of EVERY covered function/class (all but the two exception classes) changes key_sig and fails hello-world on tag
-identity staff_mix demo: key_sig same as live: False ; tampered blob on live: AuthError('tag mismatch') ; live hello-world under tampering: AuthError('tag mismatch')
-PASS earlier copied-identity staff_mix demo now fails: key_sig differs, its blob fails live on TAG (was: tag valid then DecodeError), live hello-world fails on tag under tampering
-PASS new module-level helper named by a replacement is in the live closure; changing only that helper changes key_sig
-PASS key_sig changes when module data LAYERS changes
-PASS key_sig changes when module data SM4_SBOX changes
-PASS key_sig changes when module data _GF_MUL changes
-PASS key_sig changes when module data BARS_INV changes
-PASS key_sig changes when module data TRIPLETS_INV changes
-PASS key_sig changes when module data MIX2_INV changes
-PASS key_sig changes when module data NR changes
-PASS key_sig changes when module data VERSION changes
-PASS staff_mix replaced by builtin list: key_signature and decrypt raise (fail closed), no plaintext
-PASS staff_mix replaced by functools.partial: key_signature and decrypt raise (fail closed), no plaintext
+modified-file revisions: 60 functions/classes; key_sig changed AND live decrypt of alt blob -> tag mismatch for 60; failures []
+PASS modified file of staff_mix: key_sig changes and its blob fails live with AuthError tag mismatch
+PASS modified file of staff_unmix: key_sig changes and its blob fails live with AuthError tag mismatch
+PASS modified file of shell_mix: key_sig changes and its blob fails live with AuthError tag mismatch
+PASS modified file of shell_unmix: key_sig changes and its blob fails live with AuthError tag mismatch
+PASS modified file of weave: key_sig changes and its blob fails live with AuthError tag mismatch
+PASS modified file of unweave: key_sig changes and its blob fails live with AuthError tag mismatch
+PASS modified file of EVERY covered function/class (all but the exception classes) changes key_sig and fails live on tag
+identity staff_mix revision: key_sig same as live: False ; tampered blob on live: AuthError('tag mismatch')
+PASS identity staff_mix file revision: key_sig differs and its blob fails live on TAG
+PASS new module-level helper named by a replacement is in the live closure; changing only that helper changes mix_description
+PASS mix_description changes when module data LAYERS changes (key_sig is cached at import)
+PASS mix_description changes when module data SM4_SBOX changes (key_sig is cached at import)
+PASS mix_description changes when module data _GF_MUL changes (key_sig is cached at import)
+PASS mix_description changes when module data BARS_INV changes (key_sig is cached at import)
+PASS mix_description changes when module data TRIPLETS_INV changes (key_sig is cached at import)
+PASS mix_description changes when module data MIX2_INV changes (key_sig is cached at import)
+PASS mix_description changes when module data NR changes (key_sig is cached at import)
+PASS mix_description changes when module data VERSION changes (key_sig is cached at import)
+PASS staff_mix replaced by builtin list: mix_description raises (fail closed); cached key_signature still works
+PASS staff_mix replaced by functools.partial: mix_description raises (fail closed); cached key_signature still works
 PASS key signature is stable across calls in an untouched process
 PASS copied bar_mix skips B0, BARS identical: key_sig changes; alternate roundtrip; live tag mismatch
-PASS runtime replacing bar_mix object changes source commitment without editing BARS
+PASS runtime replacing bar_mix object changes mix_description without editing BARS (key_sig stays cached)
 N2-8bit+bars+triplets diffusion, min over 128 input bytes of |union of affected output bytes| after r rounds: [128, 128, 128, 128, 128, 128]
 N2-8bit+bars+triplets diffusion, mean affected bytes per single trial (random ~127.5): [127.6, 127.5, 127.5, 127.5, 127.5, 127.5]
 N2-8bit+bars+triplets full byte dependence at round 1  (8-bit N2 before bars: round 3, min-union [37, 127, 128]; 4-bit N2: round 3)
 PASS N2-8bit reaches full 128-byte dependence by round 4
 PASS N2-8bit mean affected bytes after 3 rounds >= 120 (random-like 127.5)
-bit avalanche  1 rounds: mean 510.7/1024, min 468, max 557
-bit avalanche  2 rounds: mean 511.0/1024, min 447, max 566
-bit avalanche  3 rounds: mean 511.2/1024, min 464, max 554
-bit avalanche  4 rounds: mean 510.5/1024, min 465, max 567
-bit avalanche 16 rounds: mean 512.6/1024, min 463, max 564
+bit avalanche  1 rounds: mean 511.2/1024, min 472, max 563
+bit avalanche  2 rounds: mean 512.4/1024, min 458, max 553
+bit avalanche  3 rounds: mean 512.4/1024, min 467, max 559
+bit avalanche  4 rounds: mean 511.3/1024, min 462, max 550
+bit avalanche 16 rounds: mean 511.9/1024, min 462, max 567
 PASS 4-round bit avalanche mean within 496..528 (of 1024)
 PASS 16-round bit avalanche mean within 500..524, min > 440
-ct byte chi2 over 2000 random messages (255 df, 99.9% crit 330.5): 257.5
+ct byte chi2 over 2000 random messages (255 df, 99.9% crit 330.5): 241.9
 PASS ct byte distribution uniform-ish (chi2 < 330.5)
 baseline frozen-and-n1.sha256: 58 files
 PASS unchanged vs baseline frozen-and-n1.sha256
@@ -281,4 +289,4 @@ baseline v2-v13-and-seed.sha256: 116 files
 PASS unchanged vs baseline v2-v13-and-seed.sha256
 PASS no files added/removed in test1/, test3/, test13/, testn1/, sneak_t1n/
 
-237/237 passed, 0 failed
+245/245 passed, 0 failed, 0 skipped
