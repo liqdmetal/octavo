@@ -27,7 +27,7 @@ CT0, CT1 = N0 + NONCE_LEN, N0 + NONCE_LEN + BLOCK_LEN          # ct = blob[36:16
 SEED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sneak1024-seed.txt")
 # sha256(mix_description()) hex; used as the StaffSponge nonce for key_signature.
 # Excluded from attestation so this constant is not part of what it names (chicken-and-egg).
-EXPECTED_MIX_SHA256 = "85d7af1ea863fc44735809576b7b96dd9ff490b6d736d243a10f7cd4b826f15a"
+EXPECTED_MIX_SHA256 = "d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd"
 
 # SM4 (SMS4) 8-bit S-box, GB/T 32907-2016 Fig./Table "S-box", as printed in draft-ribose-cfrg-sm4-10 sec. 6.2.3
 # (Tse, Wong, Saarinen, IRTF CFRG, 2018). Published DDT max 4/256 (2^-6), nonlinearity 112 (LAT max |bias| 16/256).
@@ -48,11 +48,9 @@ class UnsupportedVersion(AuthError): """Blob format version is not the one this 
 # ---------------------------------------------------------------- seed
 def load_seed(path=None) -> bytes:
     """Same file and parsing as N1 (256 hex digits = 1024 bits), returned as 128 big-endian bytes.
-    Default: sneak1024-seed.txt next to this module; if that file is missing, /workspace/sneak1024-seed.txt."""
+    Default: sneak1024-seed.txt next to this module."""
     if path is None:
         path = SEED_PATH
-        if not os.path.isfile(path):
-            path = "/workspace/sneak1024-seed.txt"
     h = "".join(c for c in open(path).read().lower() if c in "0123456789abcdef")
     if len(h) != 256: raise ValueError(f"seed must be 256 hex digits, got {len(h)}")
     return bytes.fromhex(h)

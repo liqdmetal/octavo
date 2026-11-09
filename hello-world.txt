@@ -1,31 +1,31 @@
 Sneak staff-core N2 (Octavo) — packaging revision: version byte, module-relative seed, cached key signature, weak-seed check.
 Homemade; NOT for real secrets. Use AES-GCM-SIV, age, or libsodium. Picture not redrawn (round function unchanged).
 seed: sneak1024-seed.txt next to sneak_n2.py (same bytes as /workspace/sneak1024-seed.txt)
-live sneak_n2.py SHA-256: 127a9628c88fe9429bca7505a67aefb6b513106a3c1cd30d4d71a443354778cd
-key_sig (16 bytes): e5f54546ca530ee6103b8420578a6aca
+live sneak_n2.py SHA-256: ffc2331605fee3bdc947212962b78a9f004c37e060e9da21b53a314e50088d45
+key_sig (16 bytes): a09a745ee41908c969c21a7d45577870
 pickup (16 bytes; fresh OS randomness): ecd5b4a32534bbea72ae2bdaaa2bb589
 nonce (16 bytes; SHA-256(clef || pickup || encode_block(msg))[:16]): 408787444f355728a176e74ad1d69691
 ciphertext (128 bytes): 9d374100e07d72dcca3bc6fc64f717347e5ce882fc888d1a186f982702f808d7922775fe319a02a5219a6d5090b292f12d7948e54222c4b79253bc43f03518236cee22ce40c26d18c8e852a2dec39845d24a0cbb886123e595301c27fef638527f906d52c11628b7cff59e68f6d019030c9783e37c5f53a45e104e8616b18909
-tag (32 bytes; HMAC-SHA256 over clef || key_sig || version || SN2 || pickup || nonce || ct): bb0e3dbb8f7adc444c0890bbb973d7dc8f3c66b87b8aca519ebb5e26e08ae11a
-blob (196 bytes = version || SN2 || pickup || nonce || ct || tag): 01534e32ecd5b4a32534bbea72ae2bdaaa2bb589408787444f355728a176e74ad1d696919d374100e07d72dcca3bc6fc64f717347e5ce882fc888d1a186f982702f808d7922775fe319a02a5219a6d5090b292f12d7948e54222c4b79253bc43f03518236cee22ce40c26d18c8e852a2dec39845d24a0cbb886123e595301c27fef638527f906d52c11628b7cff59e68f6d019030c9783e37c5f53a45e104e8616b18909bb0e3dbb8f7adc444c0890bbb973d7dc8f3c66b87b8aca519ebb5e26e08ae11a
+tag (32 bytes; HMAC-SHA256 over clef || key_sig || version || SN2 || pickup || nonce || ct): be0965b1b02b8d284c4ab19ab324699cfbebebfee72ddaa9a3019e530528e8e1
+blob (196 bytes = version || SN2 || pickup || nonce || ct || tag): 01534e32ecd5b4a32534bbea72ae2bdaaa2bb589408787444f355728a176e74ad1d696919d374100e07d72dcca3bc6fc64f717347e5ce882fc888d1a186f982702f808d7922775fe319a02a5219a6d5090b292f12d7948e54222c4b79253bc43f03518236cee22ce40c26d18c8e852a2dec39845d24a0cbb886123e595301c27fef638527f906d52c11628b7cff59e68f6d019030c9783e37c5f53a45e104e8616b18909be0965b1b02b8d284c4ab19ab324699cfbebebfee72ddaa9a3019e530528e8e1
 
 hex grid: 16 faces x 8 byte-beats, open staffs, four measures of 2/4:
-  inner 1    | 9D 37 | 41 00 | E0 7D | 72 DC |
-  inner 2    | CA 3B | C6 FC | 64 F7 | 17 34 |
-  inner 3    | 7E 5C | E8 82 | FC 88 | 8D 1A |
-  inner 4    | 18 6F | 98 27 | 02 F8 | 08 D7 |
-  inner 5    | 92 27 | 75 FE | 31 9A | 02 A5 |
-  inner 6    | 21 9A | 6D 50 | 90 B2 | 92 F1 |
-  inner 7    | 2D 79 | 48 E5 | 42 22 | C4 B7 |
-  inner 8    | 92 53 | BC 43 | F0 35 | 18 23 |
-  outer o1   | 6C EE | 22 CE | 40 C2 | 6D 18 |
-  outer o2   | C8 E8 | 52 A2 | DE C3 | 98 45 |
-  outer o3   | D2 4A | 0C BB | 88 61 | 23 E5 |
-  outer o4   | 95 30 | 1C 27 | FE F6 | 38 52 |
-  outer o5   | 7F 90 | 6D 52 | C1 16 | 28 B7 |
-  outer o6   | CF F5 | 9E 68 | F6 D0 | 19 03 |
-  outer o7   | 0C 97 | 83 E3 | 7C 5F | 53 A4 |
-  outer o8   | 5E 10 | 4E 86 | 16 B1 | 89 09 |
+  inner 1   | 9D 37 41 00 | E0 7D 72 DC |
+  inner 2   | CA 3B C6 FC | 64 F7 17 34 |
+  inner 3   | 7E 5C E8 82 | FC 88 8D 1A |
+  inner 4   | 18 6F 98 27 | 02 F8 08 D7 |
+  inner 5   | 92 27 75 FE | 31 9A 02 A5 |
+  inner 6   | 21 9A 6D 50 | 90 B2 92 F1 |
+  inner 7   | 2D 79 48 E5 | 42 22 C4 B7 |
+  inner 8   | 92 53 BC 43 | F0 35 18 23 |
+  outer o1  | 6C EE 22 CE | 40 C2 6D 18 |
+  outer o2  | C8 E8 52 A2 | DE C3 98 45 |
+  outer o3  | D2 4A 0C BB | 88 61 23 E5 |
+  outer o4  | 95 30 1C 27 | FE F6 38 52 |
+  outer o5  | 7F 90 6D 52 | C1 16 28 B7 |
+  outer o6  | CF F5 9E 68 | F6 D0 19 03 |
+  outer o7  | 0C 97 83 E3 | 7C 5F 53 A4 |
+  outer o8  | 5E 10 4E 86 | 16 B1 89 09 |
 
 recovered plaintext: b'hello world'
 1-bit flip (blob byte 100, bit 0) rejected: AuthError: tag mismatch

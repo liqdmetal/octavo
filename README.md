@@ -77,7 +77,7 @@ is a fixed schedule-test nonce, not the hello-world sample). The picture was
 not redrawn.
 
 - Live `sneak_n2.py` SHA-256: `127a9628c88fe9429bca7505a67aefb6b513106a3c1cd30d4d71a443354778cd`.
-- `EXPECTED_MIX_SHA256`: `85d7af1ea863fc44735809576b7b96dd9ff490b6d736d243a10f7cd4b826f15a`.
+- `EXPECTED_MIX_SHA256`: `d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd`.
 - key_sig (demo seed): `e5f54546ca530ee6103b8420578a6aca`.
 - hello-world pickup `ecd5b4a32534bbea72ae2bdaaa2bb589`, nonce `408787444f355728a176e74ad1d69691` (see `hello-world.txt`).
 - Blob size: 196 bytes.

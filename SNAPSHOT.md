@@ -5,7 +5,7 @@ Saved 2026-11-09 from live /workspace/sneak_n2 (Python caches excluded), plus sn
 This is the packaging revision on top of octavo002 (beat-0 pressure rotation). The round function is unchanged.
 
 - sneak_n2.py SHA-256: 127a9628c88fe9429bca7505a67aefb6b513106a3c1cd30d4d71a443354778cd
-- EXPECTED_MIX_SHA256: 85d7af1ea863fc44735809576b7b96dd9ff490b6d736d243a10f7cd4b826f15a
+- EXPECTED_MIX_SHA256: d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd
 - key_sig (demo seed): e5f54546ca530ee6103b8420578a6aca
 - Tests at freeze: 245/245 (0 skipped on the author's machine)
 - Blob size: 196 bytes (version byte 1 || SN2 || pickup || nonce || ct || tag)
