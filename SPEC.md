@@ -11,8 +11,7 @@ or the advertised quick start.
 ### Seed path
 
 `SEED_PATH` is `sneak1024-seed.txt` next to this module (`os.path.dirname(abspath(__file__))`).
-`load_seed()` with no argument uses that file, and falls back to
-`/workspace/sneak1024-seed.txt` only if the module-relative file is missing.
+`load_seed()` with no argument reads only that file; there is no other fallback path.
 The runtime absolute value of `SEED_PATH` is listed in `_ATTEST_SKIP` and is
 **not** hashed into `mix_description`, so two installs of the same source produce
 the same `key_signature`.

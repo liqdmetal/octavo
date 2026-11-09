@@ -1,6 +1,6 @@
 Sneak staff-core N2 (Octavo) — packaging revision: version byte, module-relative seed, cached key signature, weak-seed check.
 Homemade; NOT for real secrets. Use AES-GCM-SIV, age, or libsodium. Picture not redrawn (round function unchanged).
-seed: sneak1024-seed.txt next to sneak_n2.py (same bytes as /workspace/sneak1024-seed.txt)
+seed: sneak1024-seed.txt next to sneak_n2.py
 live sneak_n2.py SHA-256: ffc2331605fee3bdc947212962b78a9f004c37e060e9da21b53a314e50088d45
 key_sig (16 bytes): a09a745ee41908c969c21a7d45577870
 pickup (16 bytes; fresh OS randomness): ecd5b4a32534bbea72ae2bdaaa2bb589

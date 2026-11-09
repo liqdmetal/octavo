@@ -3,6 +3,7 @@ from collections import Counter
 import inspect, sys, os, random, hashlib, subprocess
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); import sneak_n2 as N
+WORK = os.environ.get("OCTAVO_WORK", "/workspace")  # author's sibling trees; checks skip when absent
 SEED = N.load_seed(); R = random.Random(2); P = F = S = 0
 def check(name, cond):
     global P, F
@@ -293,7 +294,7 @@ if FIELD_OLD is None:
     skip("triplet tuples and integer helpers byte-for-byte unchanged by field retune")
 else:
     check("triplet tuples and integer helpers byte-for-byte unchanged by field retune", N.TRIPLETS == FIELD_OLD.TRIPLETS and all(inspect.getsource(getattr(N, f)) == inspect.getsource(getattr(FIELD_OLD, f)) for f in ("triplet_apply", "triplet_inv", "triplet_det", "staff_mix")))
-N3 = load("testn3", "/workspace/testn3/sneak_n2.py")                  # frozen testn3 copy (same previous cipher)
+N3 = load("testn3", os.path.join(WORK, "testn3", "sneak_n2.py"))                  # frozen testn3 copy (same previous cipher)
 PRE_ORDER = load("preclef_order", "/tmp/sneak_n2_pre_clef_encore_siv/sneak_n2.py")
 if PRE_ORDER is not None:
     PRE_ORDER.BARS, PRE_ORDER.BARS_INV = N.BARS, N.BARS_INV               # same pre-encore round, but with the new 7-mix list
@@ -528,7 +529,7 @@ check("cell-2 previous five-staff confinement broken in all 300 pairs; union all
       confined==0 and staff_union==set(range(16)) and min(active_counts)>5)
 for name, expected in (("testn4","46274b690e3d3ae53649b810591681b94f53983c72f6fb9789a19c8670003f45"),
                        ("testn3","a64dc256aab66436073e888bbb6a31210f1b5c0af00b10c14ddd875fafd1b1b1")):
-    fp = os.path.join("/workspace", name, "sneak_n2.py")
+    fp = os.path.join(WORK, name, "sneak_n2.py")
     if not os.path.isfile(fp):
         skip(name+" frozen source hash unchanged")
     else:
@@ -1009,9 +1010,9 @@ check("ct byte distribution uniform-ish (chi2 < 330.5)", chi < 330.5)
 
 # ---- frozen trees untouched (sha256 baselines taken before N2 was written)
 def sha_ok(listfile):
-    r = subprocess.run(["sha256sum", "-c", "--quiet", listfile], cwd="/workspace", capture_output=True)
+    r = subprocess.run(["sha256sum", "-c", "--quiet", listfile], cwd=WORK, capture_output=True)
     return r.returncode == 0
-if os.path.isdir("/workspace/test1"):
+if os.path.isdir(os.path.join(WORK, "test1")):
     for lf in ("frozen-and-n1.sha256", "v2-v13-and-seed.sha256"):
         lp = os.path.join(HERE, "baselines", lf)
         if not os.path.isfile(lp):
@@ -1022,8 +1023,8 @@ if os.path.isdir("/workspace/test1"):
     bp = os.path.join(HERE, "baselines", "frozen-and-n1.sha256")
     if os.path.isfile(bp):
         base_files = sorted(l.split("  ", 1)[1].strip() for l in open(bp))
-        now_files = sorted(os.path.relpath(os.path.join(dp, f), "/workspace") for d in ("test1", "test3", "test13", "testn1", "sneak_t1n")
-                           for dp, _, fs in os.walk(os.path.join("/workspace", d)) for f in fs) + ["sneak-staff-t1n.png"]
+        now_files = sorted(os.path.relpath(os.path.join(dp, f), WORK) for d in ("test1", "test3", "test13", "testn1", "sneak_t1n")
+                           for dp, _, fs in os.walk(os.path.join(WORK, d)) for f in fs) + ["sneak-staff-t1n.png"]
         check("no files added/removed in test1/, test3/, test13/, testn1/, sneak_t1n/", base_files == sorted(now_files))
     else:
         skip("no files added/removed in test1/, test3/, test13/, testn1/, sneak_t1n/")

@@ -54,10 +54,9 @@ stopped a fresh clone from running. Those packaging bugs are what this revision
 fixes. That review is a negative experimental result, not a security proof.
 
 **What changed (packaging only).**
-- Default seed path is `sneak1024-seed.txt` next to `sneak_n2.py`, with a fallback
-  to `/workspace/sneak1024-seed.txt` if the module-relative file is missing. The
-  runtime absolute path is not attested, so tags do not depend on the install
-  location.
+- Default seed path is `sneak1024-seed.txt` next to `sneak_n2.py`, with no other
+  fallback. The runtime absolute path is not attested, so tags do not depend on
+  the install location.
 - `key_signature` no longer re-hashes source on every encrypt/decrypt. At import,
   `sha256(mix_description())` is computed (when source is readable) and checked
   against the embedded `EXPECTED_MIX_SHA256`. That digest is the StaffSponge
@@ -67,8 +66,8 @@ fixes. That review is a negative experimental result, not a security proof.
   ("unsupported version") for a wrong first byte *before* checking the tag. The
   version byte is included in the HMAC.
 - Seeds with fewer than 32 distinct nonzero bytes are rejected (`ValueError`).
-- `test_sneak_n2.py` is portable: historical `/tmp` and `/workspace` copies are
-  skipped when missing, and the packaging fixes above are tested.
+- `test_sneak_n2.py` is portable: historical `/tmp` and sibling copies (under
+  `OCTAVO_WORK`, default `/workspace`) are skipped when missing, and the packaging fixes above are tested.
 
 **What did not change.** The 16-round function, S-boxes, schedule sponge domains
 (`SN2/K`, `SN2/M`, `SN2/C`, `SN2/G`), mixes, bow, rehair and cross-staff layers
@@ -78,7 +77,7 @@ not redrawn.
 
 - Live `sneak_n2.py` SHA-256: `127a9628c88fe9429bca7505a67aefb6b513106a3c1cd30d4d71a443354778cd`.
 - `EXPECTED_MIX_SHA256`: `d64f4e9ce02c88371f21dfd264b6d2ca1fe13c89e3fd93261caea02c703b77bd`.
-- key_sig (demo seed): `e5f54546ca530ee6103b8420578a6aca`.
+- key_sig (demo seed): `a09a745ee41908c969c21a7d45577870`.
 - hello-world pickup `ecd5b4a32534bbea72ae2bdaaa2bb589`, nonce `408787444f355728a176e74ad1d69691` (see `hello-world.txt`).
 - Blob size: 196 bytes.
 
