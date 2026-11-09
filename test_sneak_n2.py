@@ -1,4 +1,5 @@
 """Tests for Sneak staff-core N2 (8-bit cells + five bar-line mixes + two interior joins (7 mixes) per staff + late S2 + bar/triplet encore + six triplets after each bar pass + clef-bound tag + SIV nonce: 16 faces x 8 byte-beats, 128-byte block, keyed SM4-affine S-boxes, SM4-field pairs/butterfly, integer triplets and nonlinear bow pressure plus cross-staff matchings). Run: python3 test_sneak_n2.py  (writes nothing into N1 / snapshot trees)."""
+from collections import Counter
 import inspect, sys, os, random, hashlib, subprocess
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); import sneak_n2 as N
@@ -799,9 +800,10 @@ check("beat-0 readers rarely share one (r1,r2); usually all three distinct (shar
 # from attacks_octavo_beat6 (beat 6 ~2^-5.6, beat 7 ~2^-4.9, beat 0 ~2^-8.1).
 _rngd=np.random.default_rng(909); Bd=_rngd.integers(0,256,(1<<12,8),dtype=np.int64); Ad=np_bow(Bd)
 def _best_diff(t):
-    pack=lambda z:(z.astype(np.int64)*(256**np.arange(8))).sum(1); best=0
+    # exact row counts: packing 8 bytes into int64 overflows (255*256**7 > 2**63) and merges distinct outputs
+    best=0
     for d in range(1,256):
-        H=Bd.copy(); H[:,t]^=d; best=max(best,int(np.unique(pack(Ad^np_bow(H)),return_counts=True)[1].max()))
+        H=Bd.copy(); H[:,t]^=d; best=max(best,max(Counter(map(tuple,Ad^np_bow(H))).values()))
     return round(float(np.log2(best/len(Bd))),2)
 bd0,bd6,bd7=_best_diff(0),_best_diff(6),_best_diff(7)
 print(f"bow-alone best diff log2 (2^12 bases): beat0={bd0}, beat6={bd6}, beat7={bd7} (pre-fix live ~-8.1/-5.6/-4.9)")
