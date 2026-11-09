@@ -1038,3 +1038,36 @@ Current sampled byte-dependence min-unions for rounds 1–6 are `[80,128,128,128
 - Backup before edits: `/tmp/sneak_n2_pre_triplet` (tree copy excluding `__pycache__`).
 
 Still **homemade, unreviewed, not for real secrets**. Use **AES-GCM-SIV, age, or libsodium** for those.
+
+## Fixed test vectors (for independent implementations)
+
+Use these to check another implementation. Each vector fixes the 16-byte pickup
+(`000102...0f`, normally `os.urandom`), so `encrypt` is deterministic. The seed is
+`sneak1024-seed.txt` as loaded by `load_seed()`. Every blob must decrypt to its
+message. A correct decryptor also rejects the three negative cases below.
+
+Seed and key signature (for the seed-loading check):
+
+| item | value |
+|---|---|
+| seed SHA-256 | `8d1f7c16876c149c2d445c2817a230ffaaec9d8a2fc9769e2f3aae155e3b8e24` |
+| key signature (16 bytes) | `e5f54546ca530ee6103b8420578a6aca` |
+| pickup used | `000102030405060708090a0b0c0d0e0f` |
+| blob length | 196 bytes (`MAX_MSG` = 127, `BLOB_LEN` = 196) |
+
+Positive vectors (message to blob):
+
+| name | msg length | nonce (SIV, 16 bytes) | blob (196 bytes, hex) |
+|---|---|---|---|
+| empty | 0 | `56e3184d97a5a8fb1e704cf1d6fb0819` | `01534e32000102030405060708090a0b0c0d0e0f56e3184d97a5a8fb1e704cf1d6fb0819c56b7b8ce93aa3f5c65eeaaef3b7df22a48197534fa56fa480faa71d8a32bb5b3bf25eaaeef99ce81acc8a096b6570de1eee02065d527ef1e8990101f060c7185fde23ab1ef27e19b4360aa31f69c066ad1c7b67e0f4e1e333462e0fdf3a37d9f3cdb348a2ab648cc26e7c8928f6902d322216990a5f9b9398fba4f77b7784e56155ce80f1888733b1f9ad4d9f8270ea855eeb441f3a30b3e5de49da444463d7` |
+| hello world | 11 | `8ead058c248507c42c799033fb03a546` | `01534e32000102030405060708090a0b0c0d0e0f8ead058c248507c42c799033fb03a54605b152b4f8e399bd46847dfc1f05074bd05c4ec7247357a9823cfb5435ace6e2aa5a87aed414f069e3a71fdb371c51af37d6762fa63cb5fae4fa67d6cc89cd20795e4c12048e842e942e8cb6686331962fb2c504758974994f773a142d2f58809e8704238551f1d83a0540df27d8382cfa8ef0d76830337bc4468c11a7d2e9fdcce477814a6c2bc9eae65a86d2b670df9e839a01bff5e01f2ca019536b8b72a6` |
+| max (127 x M) | 127 | `2b3ac480f04caf1eaa19a7f4b97dafe9` | `01534e32000102030405060708090a0b0c0d0e0f2b3ac480f04caf1eaa19a7f4b97dafe972835c6b376607f0c5dc14944cd17694e42ed89d1a23eb7cda07b7877a5e5a2a9a7f0eedb0c09b3403738c39f639b991580ad55770c2b82ab21c8db38d39cc4c7a8bd3c6dca56996835f94ad83d9dbe1a4eb17eceb96a2e76154c08ee042b6916c3ca65a0c7595346a1f7a96ff7e3fb05da10eca0181d480f1d3855248755514767197f708be0c4ba91f371f19c38019171b4a5c00ae83f4aba8d6b5b7f1184b` |
+
+Negative cases (each must raise an authentication error, not return plaintext):
+
+| name | input |
+|---|---|
+| tampered tag | the `hello world` blob with its last byte XOR 0x01 |
+| bad version byte | the `hello world` blob with byte 0 set to `00` |
+| truncated | the `hello world` blob with its last byte removed |
+
