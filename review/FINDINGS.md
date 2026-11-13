@@ -13,7 +13,7 @@
 | `sneak_n2.py` (committed blob, LF) | `25cfe812ac6a5d5c22a26ba17440843f417dd44e060498850a78b68964612ff0` — matches `SNAPSHOT.md` and `README.md` |
 | `key_signature` | `1946c5ac57f19d045eeacd9e5ed823fb` — matches `SNAPSHOT.md` |
 | Harness | `review_fullbore.py`, NumPy model + attack pass, ~210 s on 8 cores |
-| Python | CPython 3.13, Windows x86-64 |
+| Python | CPython 3.13, Windows x86-64 (review harness host only). The committed rehearsal constant `f28badba…` matches the Linux errno set `{1, 18, 31, 38, 95}`, not this host's set. |
 
 The working tree I tested is CRLF (`core.autocrlf`), so the raw file hashes to `d296d13e…` locally. The committed
 LF blob hashes to `25cfe812…`, and `key_signature` is unchanged under CRLF, so tags are stable across line
